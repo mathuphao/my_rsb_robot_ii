@@ -30,6 +30,7 @@ ${zip_file}       ${OUTPUT_DIR}${/}pdf_archives.zip
     ${orders}=    Get orders
     FOR    ${row}    IN    @{orders}
         Close the annoying modal
+        # Check for server error    # if statement
         Fill the form    ${row}
         Wait Until Keyword Succeeds    8x    2s    Preview the robot
         Wait Until Keyword Succeeds    8x    2s    Submit the order
@@ -38,6 +39,7 @@ ${zip_file}       ${OUTPUT_DIR}${/}pdf_archives.zip
         Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}    ${row}[Order number]
         Go to order another robot
     END
+    Log Out and close browser
     Create a ZIP file of the receipts
 
 *** Keywords ***
@@ -54,7 +56,15 @@ Open the robot order website
     # Open Available Browser    https://robotsparebinindustries.com/#/robot-order    #Comment out 2 lines above to test locally
 
 Close the annoying modal
+    Wait Until Page Contains Element    id:order
     Click Button    OK
+# Check for server error
+#    server_error = True
+#    while server_error:
+#    if check_for_server_error:
+#    reload_page()
+#    close_annoying_modal()
+#    return check_for_server_error
 
 Get Orders
     Download    https://robotsparebinindustries.com/orders.csv    overwrite=True
@@ -74,7 +84,9 @@ Preview the robot
 
 Submit the order
     Mute Run On Failure    Page Should Contain Element
+    Wait Until Element Is Visible    id:order
     Click Button    order
+    Wait Until Element Is Visible    id:receipt
 
 Store the receipt as a PDF file
     [Arguments]    ${Order number}
@@ -98,9 +110,12 @@ Go to order another robot
     Click Button    order-another
 
 Create a ZIP file of the receipts
-    Archive Folder With Zip    ${pdfs_temp}${/}${Order number}.pdf    ${zip_file}
+    Archive Folder With ZIP    ${pdfs_temp}    ${zip_file}    recursive=True    include=*.pdf
 
 Get the order csv url
     Add text input    url    placeholder=Please enter the orders csv url
     ${result}=    Run dialog
     [Return]    ${result.url}
+
+Log Out and close browser
+    Close Browser
